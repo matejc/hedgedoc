@@ -14,11 +14,13 @@ import { MediaConfig } from './config/media.config';
 import { setupPrivateApiDocs, setupPublicApiDocs } from './utils/swagger';
 import { BackendType } from './media/backends/backend-type.enum';
 import { ConsoleLoggerService } from './logger/console-logger.service';
+import { WsAdapter } from '@nestjs/platform-ws';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: ['error', 'warn', 'log'] as LogLevel[],
   });
+  app.useWebSocketAdapter(new WsAdapter(app));
   const logger = await app.resolve(ConsoleLoggerService);
   logger.log('Switching logger', 'AppBootstrap');
   app.useLogger(logger);

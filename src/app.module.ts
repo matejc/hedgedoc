@@ -32,6 +32,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { RouterModule, Routes } from 'nest-router';
 import { FrontendConfigService } from './frontend-config/frontend-config.service';
 import { FrontendConfigModule } from './frontend-config/frontend-config.module';
+import { RealtimeModule } from './realtime/realtime.module';
 
 const routes: Routes = [
   {
@@ -81,6 +82,7 @@ const routes: Routes = [
     MediaModule,
     AuthModule,
     FrontendConfigModule,
+    RealtimeModule,
   ],
   controllers: [],
   providers: [FrontendConfigService],

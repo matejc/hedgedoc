@@ -15,18 +15,20 @@ import { setupPrivateApiDocs, setupPublicApiDocs } from './utils/swagger';
 import { BackendType } from './media/backends/backend-type.enum';
 import { ConsoleLoggerService } from './logger/console-logger.service';
 import { WsAdapter } from '@nestjs/platform-ws';
+import { YjsAdapter } from './realtime/editor/yjs.adapter';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: ['error', 'warn', 'log'] as LogLevel[],
   });
-  app.useWebSocketAdapter(new WsAdapter(app));
   const logger = await app.resolve(ConsoleLoggerService);
   logger.log('Switching logger', 'AppBootstrap');
   app.useLogger(logger);
   const configService = app.get(ConfigService);
   const appConfig = configService.get<AppConfig>('appConfig');
   const mediaConfig = configService.get<MediaConfig>('mediaConfig');
+
+  app.useWebSocketAdapter(new WsAdapter(app));
 
   if (!appConfig || !mediaConfig) {
     logger.error('Could not initialize config, aborting.', 'AppBootstrap');

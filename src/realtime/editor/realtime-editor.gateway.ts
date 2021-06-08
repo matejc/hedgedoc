@@ -15,40 +15,29 @@ import {
 } from '@nestjs/websockets';
 import { Logger } from '@nestjs/common';
 import BiMap from 'bidirectional-map';
-import ws from 'ws';
+import WebSocket, { Server } from 'ws';
+import { IncomingMessage } from 'http';
 
 @WebSocketGateway({ path: '/realtime' })
 export class RealtimeEditorGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
   @WebSocketServer()
-  private websocketServer: ws.Server;
+  private websocketServer: Server;
 
-  private noteClientMap = new BiMap<any[]>(); // FIXME replace any with type of ws-client
+  private noteClientMap = new BiMap<WebSocket[]>();
   private logger: Logger = new Logger('RealtimeEditorGateway');
 
-  afterInit(server: ws.Server) {
+  afterInit(server: Server): void {
     this.logger.log('Init server');
   }
 
-  handleDisconnect(client: any) {
-    // FIXME any
-
-    this.logger.log(`Client disconnected: ${JSON.stringify(client)}`);
+  handleDisconnect(client: WebSocket): void {
+    this.logger.log(`Client disconnected`);
   }
 
-  handleConnection(client: any, ...args: any[]) {
-    // FIXME any
-
-    // TODO Check that user is authenticated, otherwise disconnect
-    // TODO Setup keep-alive check
-    this.logger.log(`Client connected`);
-  }
-
-  @SubscribeMessage('connect')
-  handleExampleMessage(client: any, @MessageBody() data: string): void {
-    // TODO Check if data is valid  note-id
-    // TODO Retrieve relevant YDoc
+  handleConnection(client: WebSocket, req: IncomingMessage): void {
+    this.logger.log(`Client connected: ${ req.url ?? '' }`);
   }
 
   @SubscribeMessage('example2')

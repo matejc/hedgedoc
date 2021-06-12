@@ -28,7 +28,7 @@ async function bootstrap(): Promise<void> {
   const appConfig = configService.get<AppConfig>('appConfig');
   const mediaConfig = configService.get<MediaConfig>('mediaConfig');
 
-  app.useWebSocketAdapter(new WsAdapter(app));
+  app.useWebSocketAdapter(new YjsAdapter(app));
 
   if (!appConfig || !mediaConfig) {
     logger.error('Could not initialize config, aborting.', 'AppBootstrap');

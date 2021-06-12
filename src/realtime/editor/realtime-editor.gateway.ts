@@ -18,7 +18,7 @@ import BiMap from 'bidirectional-map';
 import WebSocket, { Server } from 'ws';
 import { IncomingMessage } from 'http';
 
-@WebSocketGateway({ path: '/realtime' })
+@WebSocketGateway()
 export class RealtimeEditorGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
@@ -28,20 +28,45 @@ export class RealtimeEditorGateway
   private noteClientMap = new BiMap<WebSocket[]>();
   private logger: Logger = new Logger('RealtimeEditorGateway');
 
+  private addClientToNote = (client: WebSocket, noteId: string) => {
+
+  }
+
+  private removeClientFromNote = (client: WebSocket) => {
+
+  }
+
   afterInit(server: Server): void {
-    this.logger.log('Init server');
   }
 
   handleDisconnect(client: WebSocket): void {
-    this.logger.log(`Client disconnected`);
   }
 
   handleConnection(client: WebSocket, req: IncomingMessage): void {
-    this.logger.log(`Client connected: ${ req.url ?? '' }`);
+    const url = req.url ?? '';
+    const pathMatching = /^\/realtime\/(.+)$/.exec(url);
+    if (!pathMatching || pathMatching.length < 2) {
+      this.logger.log('No connection because of invalid path: ' + url);
+      client.close();
+      return;
+    }
+    const noteIdFromPath = pathMatching[1];
+    this.logger.log('Connection to note: ' + noteIdFromPath);
+    // TODO Check whether note id from path exists
   }
 
-  @SubscribeMessage('example2')
-  handleExample2Message(client: any, @MessageBody() data: string): void {
-    this.websocketServer.emit('msgToClient', data);
+  @SubscribeMessage('messageSync')
+  handleMessageSync(client: WebSocket, @MessageBody() data: string): void {
+    this.logger.log('Received SYNC message');
+  }
+
+  @SubscribeMessage('messageAwareness')
+  handleMessageAwareness(client: WebSocket, @MessageBody() data: string): void {
+    this.logger.log('Received AWARENESS message');
+  }
+
+  @SubscribeMessage('messageHedgeDoc')
+  handleMessageHedgeDoc(client: WebSocket, @MessageBody() data: string): void {
+    this.logger.log('Received HEDGEDOC message');
   }
 }

@@ -3,71 +3,74 @@
  *
  * SPDX-License-Identifier: AGPL-3.0-only
  */
+import Y from 'yjs'
 import { Observable } from 'rxjs';
-import { INestApplicationContext, WebSocketAdapter, WsMessageHandler } from '@nestjs/common';
+import { INestApplicationContext, Logger, WsMessageHandler } from '@nestjs/common';
 import WebSocket, { Server, ServerOptions } from 'ws';
-import { IncomingMessage } from 'http';
+import { AbstractWsAdapter } from '@nestjs/websockets';
+import { CONNECTION_EVENT, ERROR_EVENT } from '@nestjs/websockets/constants';
+import http, { IncomingMessage } from 'http';
+import https from 'https';
+import { encoding, decoding } from 'lib0'
 
-export class YjsAdapter implements WebSocketAdapter {
-  constructor(private app: INestApplicationContext) {}
+type WebServer =  http.Server | https.Server
 
-  bindClientConnect (server: Server, callback: (socket: WebSocket, req: IncomingMessage) => void): void {
-    console.debug('YjsAdapter connected')
-    server.on('connection', callback);
+interface MessageHandler {
+  message: string;
+  callback: (data: Uint8Array) => Promise<void>;
+}
+
+export class YjsAdapter extends AbstractWsAdapter {
+  protected readonly logger = new Logger(YjsAdapter.name);
+
+  constructor(private app: INestApplicationContext) {
+    super(app);
   }
 
-  bindClientDisconnect (client: WebSocket, callback: (socket: WebSocket, req: IncomingMessage) => void): any {
-    client.on('disconnect', callback);
-  }
+  bindMessageHandlers (client: WebSocket, handlers: MessageHandler[], transform: (data: any) => Observable<any>): any {
+    const messageTypeMap = {
+      0: 'messageSync',
+      1: 'messageAwareness',
+      100: 'messageHedgeDoc'
+    } as {[key: number]: string}
+    client.binaryType = 'arraybuffer';
+    client.on('message', (data: ArrayBuffer) => {
+      const uint8Data = new Uint8Array(data);
+      const decoder = decoding.createDecoder(uint8Data);
+      const messageType = decoding.readVarUint(decoder);
+      const handler = handlers.find(handler => handler.message === messageTypeMap[messageType])
+      if (!handler) {
+        this.logger.error('Some message handlers were not defined!');
+        // ToDo: crash app here?
+        return;
+      }
+      handler.callback(uint8Data).catch((error: Error) => {
 
-  bindMessageHandlers (client: WebSocket, handlers: WsMessageHandler[], transform: (data: any) => Observable<any>): any {
-    client.on('message', (data: Buffer) => {
-      console.debug('Received realtime message: ' + String(data))
+      })
     })
-
-    /*fromEvent(client, 'message')
-      .pipe(
-        mergeMap(data => this.bindMessageHandler(data, handlers, process)),
-        filter(result => result),
-      )
-      .subscribe(response => client.send(JSON.stringify(response)));*/
   }
 
-  /*bindMessageHandler(
-    buffer,
-    handlers: WsMessageHandler[],
-    process: (data: any) => Observable<any>,
-  ): Observable<any> {
-    const message = JSON.parse(buffer.data);
-    const messageHandler = handlers.find(
-      handler => handler.message === message.event,
-    );
-    if (!messageHandler) {
-      return EMPTY;
+  create (port: number, options: ServerOptions): Server {
+    this.logger.log('Initiating WebSocket server for realtime communication');
+    let server: Server;
+    if (this.httpServer) {
+      this.logger.log('Using existing WebServer for WebSocket communication');
+      server = new Server({ server: this.httpServer as WebServer, ...options });
+    } else {
+      this.logger.log('Using new WebSocket server instance');
+      server = new Server({
+        port,
+        ...options,
+      });
     }
-    return process(messageHandler.callback(message.data));
-  }*/
-
-  close (server: Server): void {
-    server.close();
+    return this.bindErrorHandler(server);
   }
 
-  create (port: number, options?: ServerOptions): Server {
-    console.debug('options: ' + JSON.stringify(options));
-    const server = new Server({ port, ...options });
-    console.log('Initiated WebSocket server for realtime communication')
-    // server.shouldHandle = (req: IncomingMessage): boolean => {
-    //   console.debug('Realtime connection attempt')
-    //   const url = new URL(req.url ?? '');
-    //   const pathMatching = /^\/realtime\/(.+)$/.exec(url.pathname);
-    //   if (!pathMatching || pathMatching.length < 2) {
-    //     return false;
-    //   }
-    //   const noteIdFromPath = pathMatching[1];
-    //   console.debug('Realtime connection attempt to note: ' + noteIdFromPath);
-    //   // TODO Check whether note id from path exists
-    //   return true;
-    // };
+  bindErrorHandler (server: Server): Server {
+    server.on(CONNECTION_EVENT, ws =>
+      ws.on(ERROR_EVENT, (err: Error) => this.logger.error(err)),
+    );
+    server.on(ERROR_EVENT, (err: Error) => this.logger.error(err));
     return server;
   }
 }

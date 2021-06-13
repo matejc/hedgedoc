@@ -20,7 +20,7 @@ import { IncomingMessage } from 'http';
 
 @WebSocketGateway()
 export class RealtimeEditorGateway
-  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
+  implements OnGatewayConnection, OnGatewayDisconnect
 {
   @WebSocketServer()
   private websocketServer: Server;
@@ -34,9 +34,6 @@ export class RealtimeEditorGateway
 
   private removeClientFromNote = (client: WebSocket) => {
 
-  }
-
-  afterInit(server: Server): void {
   }
 
   handleDisconnect(client: WebSocket): void {

@@ -1919,11 +1919,6 @@ bcrypt@5.0.1:
     "@mapbox/node-pre-gyp" "^1.0.0"
     node-addon-api "^3.1.0"
 
-bidirectional-map@^1.0.4:
-  version "1.0.4"
-  resolved "https://registry.yarnpkg.com/bidirectional-map/-/bidirectional-map-1.0.4.tgz#e9fe247009aaace12b76a14ff9deaae46ade641a"
-  integrity sha512-gA5hEm30BfTBNjnYLxjSmuwh7YW2rC2dvCN21ADsi/YXv6lSF2oAXQWQzdNPcrBupnTi5Wx2LD+UIrg6ZEyk4Q==
-
 binary-extensions@^2.0.0:
   version "2.2.0"
   resolved "https://registry.yarnpkg.com/binary-extensions/-/binary-extensions-2.2.0.tgz#75f502eeaf9ffde42fc98829645be4ea76bd9e2d"

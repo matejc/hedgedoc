@@ -5,19 +5,21 @@
  */
 import Y from 'yjs'
 import { Observable } from 'rxjs';
-import { INestApplicationContext, Logger, WsMessageHandler } from '@nestjs/common';
+import { INestApplicationContext, Logger } from '@nestjs/common';
 import WebSocket, { Server, ServerOptions } from 'ws';
 import { AbstractWsAdapter } from '@nestjs/websockets';
 import { CONNECTION_EVENT, ERROR_EVENT } from '@nestjs/websockets/constants';
-import http, { IncomingMessage } from 'http';
+import http from 'http';
 import https from 'https';
 import { decoding } from 'lib0'
+
+export type MessageHandlerCallbackResponse = Promise<Uint8Array | void>;
 
 type WebServer =  http.Server | https.Server
 
 interface MessageHandler {
   message: string;
-  callback: (data: Uint8Array) => Promise<Uint8Array | void>;
+  callback: (data: Uint8Array) => MessageHandlerCallbackResponse;
 }
 
 export class YjsAdapter extends AbstractWsAdapter {

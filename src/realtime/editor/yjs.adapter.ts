@@ -11,13 +11,13 @@ import { AbstractWsAdapter } from '@nestjs/websockets';
 import { CONNECTION_EVENT, ERROR_EVENT } from '@nestjs/websockets/constants';
 import http, { IncomingMessage } from 'http';
 import https from 'https';
-import { encoding, decoding } from 'lib0'
+import { decoding } from 'lib0'
 
 type WebServer =  http.Server | https.Server
 
 interface MessageHandler {
   message: string;
-  callback: (data: Uint8Array) => Promise<void>;
+  callback: (data: Uint8Array) => Promise<Uint8Array | void>;
 }
 
 export class YjsAdapter extends AbstractWsAdapter {
@@ -41,28 +41,33 @@ export class YjsAdapter extends AbstractWsAdapter {
       const handler = handlers.find(handler => handler.message === messageTypeMap[messageType])
       if (!handler) {
         this.logger.error('Some message handlers were not defined!');
-        // ToDo: crash app here?
         return;
       }
-      handler.callback(uint8Data).catch((error: Error) => {
-
+      handler.callback(uint8Data).then(response => {
+        if (!response) {
+          return
+        }
+        client.send(response, {
+          binary: true
+        })
+      }).catch((error: Error) => {
+        this.logger.error('An error occurred while handling message: ' + String(error))
       })
     })
   }
 
   create (port: number, options: ServerOptions): Server {
     this.logger.log('Initiating WebSocket server for realtime communication');
-    let server: Server;
     if (this.httpServer) {
       this.logger.log('Using existing WebServer for WebSocket communication');
-      server = new Server({ server: this.httpServer as WebServer, ...options });
-    } else {
-      this.logger.log('Using new WebSocket server instance');
-      server = new Server({
-        port,
-        ...options,
-      });
+      const server = new Server({ server: this.httpServer as WebServer, ...options });
+      return this.bindErrorHandler(server)
     }
+    this.logger.log('Using new WebSocket server instance');
+    const server = new Server({
+      port,
+      ...options,
+    });
     return this.bindErrorHandler(server);
   }
 

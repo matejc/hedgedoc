@@ -7,4 +7,5 @@
 export enum MessageType {
   SYNC = 0,
   AWARENESS = 1,
+  HEDGEDOC = 100
 }

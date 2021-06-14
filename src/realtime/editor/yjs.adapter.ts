@@ -12,6 +12,7 @@ import { CONNECTION_EVENT, ERROR_EVENT } from '@nestjs/websockets/constants';
 import http from 'http';
 import https from 'https';
 import { decoding } from 'lib0'
+import { MessageType } from './message-type';
 
 export type MessageHandlerCallbackResponse = Promise<Uint8Array | void>;
 
@@ -30,17 +31,12 @@ export class YjsAdapter extends AbstractWsAdapter {
   }
 
   bindMessageHandlers (client: WebSocket, handlers: MessageHandler[], transform: (data: any) => Observable<any>): any {
-    const messageTypeMap = {
-      0: 'messageSync',
-      1: 'messageAwareness',
-      100: 'messageHedgeDoc'
-    } as {[key: number]: string}
     client.binaryType = 'arraybuffer';
     client.on('message', (data: ArrayBuffer) => {
       const uint8Data = new Uint8Array(data);
       const decoder = decoding.createDecoder(uint8Data);
       const messageType = decoding.readVarUint(decoder);
-      const handler = handlers.find(handler => handler.message === messageTypeMap[messageType])
+      const handler = handlers.find(handler => handler.message === MessageType[messageType])
       if (!handler) {
         this.logger.error('Some message handlers were not defined!');
         return;

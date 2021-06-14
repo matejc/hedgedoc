@@ -51,7 +51,12 @@ export class NoteClientMap {
     if (!clients) {
       return;
     }
-    this.noteIdToClients.set(noteId, clients.filter(aClient => aClient === client));
+    const filteredClients = clients.filter(aClient => aClient === client);
+    if (filteredClients.length === 0) {
+      this.noteIdToClients.delete(noteId);
+    } else {
+      this.noteIdToClients.set(noteId, filteredClients);
+    }
   }
 
   /**
@@ -60,10 +65,11 @@ export class NoteClientMap {
    * @returns WebSocket[] An array of WebSocket clients.
    */
   public getClientsByNoteId (noteId: string): WebSocket[] {
-    if (!this.noteIdToClients.has(noteId)) {
+    const clients = this.noteIdToClients.get(noteId);
+    if (!clients) {
       throw new Error('noteId does not exist in map');
     }
-    return this.noteIdToClients.get(noteId) ?? [];
+    return clients;
   }
 
   /**
@@ -73,9 +79,24 @@ export class NoteClientMap {
    * @returns undefined If the client is not present in this mapping instance.
    */
   public getNoteIdByClient (client: WebSocket): string | undefined {
-    if (!this.clientToNoteId.has(client)) {
-      return undefined;
-    }
-    return this.clientToNoteId.get(client) as string;
+    return this.clientToNoteId.get(client);
+  }
+
+  /**
+   * Returns the number of clients connected to any note.
+   * @returns number The number of WebSocket clients.
+   */
+  public countClients (): number {
+    return this.clientToNoteId.size;
+  }
+
+  /**
+   * Returns the number of notes with at least one client connection.
+   * This is ensured because the disconnect of the last client on a note, results
+   * in removal of this note id in the mapping instance.
+   * @returns number The number of notes with at least one active client connection.
+   */
+  public countNotes (): number {
+    return this.noteIdToClients.size;
   }
 }

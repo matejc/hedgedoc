@@ -48,10 +48,12 @@ export class RealtimeEditorGateway implements OnGatewayConnection, OnGatewayDisc
   handleDisconnect(client: WebSocket): void {
     const noteIdOfClient = this.noteClientMap.getNoteIdByClient(client);
     if (noteIdOfClient === undefined) {
+      this.logger.log('Undefined noteid for client')
       return;
     }
     this.logger.log(`Client disconnected from note '${noteIdOfClient}'`);
     this.noteClientMap.removeClient(client);
+    this.logger.log(`Status: ${this.noteClientMap.countClients()} users online on ${this.noteClientMap.countNotes()} notes`)
     // TODO If this client was the last one participating on a note, close the YDoc of the note and store it to the db.
   }
 
@@ -65,6 +67,7 @@ export class RealtimeEditorGateway implements OnGatewayConnection, OnGatewayDisc
    * @param req The underlying HTTP request of the WebSocket connection.
    */
   async handleConnection(client: WebSocket, req: IncomingMessage): Promise<void> {
+    client.on('close', () => this.handleDisconnect(client))
     const url = req.url ?? '';
     const pathMatching = /^\/realtime\/(.+)$/.exec(url);
     if (!pathMatching || pathMatching.length < 2) {
@@ -92,6 +95,7 @@ export class RealtimeEditorGateway implements OnGatewayConnection, OnGatewayDisc
     }
     this.noteClientMap.addClient(client, note.id);
     this.logger.log(`Connection to note '${note.id}' by user '${user.userName}'`);
+    this.logger.log(`Status: ${this.noteClientMap.countClients()} users online on ${this.noteClientMap.countNotes()} notes`);
   }
 
   /**
